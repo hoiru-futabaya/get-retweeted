@@ -60,13 +60,23 @@ else:
 
 	if not now == before:
 		for i in now:
-			if (i not in before
-				or not now[i] == before[i]) :
-				#import pdb; pdb.set_trace() # 追加
-				url3 = "https://api.twitter.com/1.1/statuses/retweets/" + str(i) + ".json"
-				res3 = get[5].get(url3)
-				timelines3 = json.loads(res3.text) #レスポンスからタイムラインリストを取得
-				print('Retweeted by ' + timelines3[0]['user']['name'] + '\n' + timelines3[0]['retweeted_status']['text'])
+			url3 = "https://api.twitter.com/1.1/statuses/retweets/" + str(i) + ".json"
+			res3 = get[5].get(url3)
+			timelines3 = json.loads(res3.text) #レスポンスからタイムラインリストを取得
+			rt_users = []
+
+			#import pdb; pdb.set_trace() # 追加
+			if i not in before:
+				for k in range(now[i]):
+					users = timelines3[k]['user']['name']
+					rt_users.append(users)
+				print('Retweeted by ' + str(rt_users) + '\n' + timelines3[0]['retweeted_status']['text'])
+
+			elif not now[i] == before[i] :
+				for k in range(now[i]-before[i]):
+					users = timelines3[k]['user']['name']
+					rt_users.append(users)
+				print('Retweeted by ' + str(rt_users) + '\n' + timelines3[0]['retweeted_status']['text'])
 	#定時監視用のデータを別ファイルに控える
 	with open('holder', mode='w') as f:
 		f.write(str(holder[1]))
