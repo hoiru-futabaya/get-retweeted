@@ -1,5 +1,5 @@
 #モジュールとconfig.pyの読み込み
-import os, ast, pprint, json, config, datetime, time, subprocess, re
+import os, ast, pprint, json, config, datetime, time, subprocess, re, sys
 #OAuthのライブラリの読み込み
 from requests_oauthlib import OAuth1Session
 
@@ -22,9 +22,16 @@ def main():
   #ツイートごとのRT関連情報を取得
   #(APIを何回も叩きたくないのでres_holderにまとめておく)
   res_holder = []
+#  import pdb; pdb.set_trace() # 追加
   for target_id in tweetid:
     url = "https://api.twitter.com/1.1/statuses/retweets/" + str(target_id) + ".json"
     loaded_data, limit, reset, sec = get_tweet(url)
+
+    if 'errors' in loaded_data:
+      print('API limit: ' + str(sec) + 'sec')
+      sys.exit()
+      break
+
     [res_holder.append(loaded_data[r]) for r in range(len(loaded_data))]
 
   #比較用のリスト（RTされたツイートのid、重複あり）を作る
@@ -47,7 +54,9 @@ def main():
       text = res_holder[0]['retweeted_status']['text']
       raw_notify_text = 'Retweeted by ' + str(users) + '\n' + '\n' + text
       notify_text = re.sub('[\]\[\']', '', raw_notify_text) #カッコとクォートをなくす
-      subprocess.run(['termux-notification', '-t', 'RTされたよ！', '-c', notify_text])
+      action = 'bash /data/data/com.termux/files/home/github/get_favorited/test.sh ' + re.sub('[\]\[\'\,]', '', str(tweetid))
+      command = ['termux-notification', '-t', 'RTされたよ！', '-c', notify_text, '--priority', 'max', '--action', action]
+      subprocess.run(command)
 
   #定時監視用のデータを別ファイルに控える
   with open('holder', mode='w') as f:
@@ -61,7 +70,7 @@ def get_tweet(url, option = 0):
   sec = 0
 
   if option == 1:
-    res = twitter.get(url, params = {'count': 5})
+    res = twitter.get(url, params = {'count': 25})
 
   else:
     res = twitter.get(url)
