@@ -22,7 +22,6 @@ def main():
   #ツイートごとのRT関連情報を取得
   #(APIを何回も叩きたくないのでres_holderにまとめておく)
   res_holder = []
-#  import pdb; pdb.set_trace() # 追加
   for target_id in tweetid:
     url = "https://api.twitter.com/1.1/statuses/retweets/" + str(target_id) + ".json"
     loaded_data, limit, reset, sec = get_tweet(url)
@@ -41,6 +40,8 @@ def main():
   with open('holder') as g:
     before = ast.literal_eval(g.read()) #1個前の辞書データ
   now = holder
+  import pdb; pdb.set_trace() # 追加
+
 
   #RT数を比較
   for n in tweetid:
@@ -50,11 +51,15 @@ def main():
       pass
 
     else:
+      for z in range(len(res_holder)):
+        if n in res_holder[z]['retweeted_status'].values():
+          text = res_holder[z]['retweeted_status']['text']
+          break
+
       users = [res_holder[k]['user']['name'] for k in range(RT_count)]
-      text = res_holder[0]['retweeted_status']['text']
       raw_notify_text = 'Retweeted by ' + str(users) + '\n' + '\n' + text
       notify_text = re.sub('[\]\[\']', '', raw_notify_text) #カッコとクォートをなくす
-      action = 'bash /data/data/com.termux/files/home/github/get_favorited/test.sh ' + re.sub('[\]\[\'\,]', '', str(tweetid))
+      action = 'bash /data/data/com.termux/files/home/github/get_favorited/test.sh ' + re.sub('[\]\[\'\,]', '', str(n))
       command = ['termux-notification', '-t', 'RTされたよ！', '-c', notify_text, '--priority', 'max', '--action', action]
       subprocess.run(command)
 
