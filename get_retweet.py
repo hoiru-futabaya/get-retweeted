@@ -16,20 +16,34 @@ def main():
   url = "https://api.twitter.com/1.1/statuses/retweets_of_me.json"
   loaded_data, _, _, _ = get_tweet(url, option=1)
 
+  if 'errors' in loaded_data:
+    print('API limit: ' + str(sec) + 'sec')
+    sys.exit()
+
   #RTされたツイートのidでリストを作る
   tweetid = [loaded_data[line]['id'] for line in range(len(loaded_data))]
 
   #ツイートごとのRT関連情報を取得
   #(APIを何回も叩きたくないのでres_holderにまとめておく)
   res_holder = []
-  for target_id in tweetid:
+
+#  import pdb; pdb.set_trace() # 追加
+  for i, target_id in enumerate(tweetid):
     url = "https://api.twitter.com/1.1/statuses/retweets/" + str(target_id) + ".json"
     loaded_data, limit, reset, sec = get_tweet(url)
+    if len(loaded_data) == 0:
+      continue
 
     if 'errors' in loaded_data:
       print('API limit: ' + str(sec) + 'sec')
       sys.exit()
-      break
+
+    del loaded_data[0]['source']
+    del loaded_data[0]['retweeted_status']['source']
+    raw_debug = re.sub('[\']', '\"', str(loaded_data[0]))
+    debug = re.sub('(True|False|None)', '\"\"', raw_debug)
+    with open('loaded/loaded_data' + str(i), mode = 'w') as x:
+      x.write(debug)
 
     [res_holder.append(loaded_data[r]) for r in range(len(loaded_data))]
 
@@ -40,8 +54,6 @@ def main():
   with open('holder') as g:
     before = ast.literal_eval(g.read()) #1個前の辞書データ
   now = holder
-  import pdb; pdb.set_trace() # 追加
-
 
   #RT数を比較
   for n in tweetid:
@@ -56,7 +68,7 @@ def main():
           text = res_holder[z]['retweeted_status']['text']
           break
 
-      users = [res_holder[k]['user']['name'] for k in range(RT_count)]
+      users = [str(k) + ' ' +  res_holder[k]['user']['name'] for k in range(RT_count)]
       raw_notify_text = 'Retweeted by ' + str(users) + '\n' + '\n' + text
       notify_text = re.sub('[\]\[\']', '', raw_notify_text) #カッコとクォートをなくす
       action = 'bash /data/data/com.termux/files/home/github/get_favorited/test.sh ' + re.sub('[\]\[\'\,]', '', str(n))
@@ -75,7 +87,7 @@ def get_tweet(url, option = 0):
   sec = 0
 
   if option == 1:
-    res = twitter.get(url, params = {'count': 25})
+    res = twitter.get(url, params = {'count': 5})
 
   else:
     res = twitter.get(url)
